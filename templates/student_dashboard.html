@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Dashboard – LearnArc</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/"><span>Learn</span>Arc</a>
+  <div class="nav-links">
+    <a href="/courses">Courses</a>
+    <span class="nav-greeting">Hi, {{ session.get('name') }} 👋</span>
+    <a href="/logout" class="btn-nav btn">Logout</a>
+  </div>
+</nav>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container flash-wrap">
+      <ul class="flash-list">
+        {% for cat, msg in messages %}
+          <li class="flash flash-{{ cat }}">
+            {% if cat == 'success' %}✓{% elif cat == 'error' %}✕{% else %}ℹ{% endif %}
+            {{ msg }}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+{% endwith %}
+
+<div class="dash-header">
+  <div class="container">
+    <h1>Student <span>Dashboard</span></h1>
+    <p>Track your learning journey and achievements</p>
+  </div>
+</div>
+
+<div class="dashboard">
+  <div class="container">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="num">{{ enrollments|length }}</div>
+        <div class="lbl">Enrolled Courses</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">{{ enrollments|selectattr('CourseStatus','eq','Completed')|list|length }}</div>
+        <div class="lbl">Completed</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">{{ certificates|length }}</div>
+        <div class="lbl">Certificates</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">
+          {% if progress_data %}
+            {{ (progress_data|sum(attribute='ProgressPct') / progress_data|length)|round|int }}%
+          {% else %}0%{% endif %}
+        </div>
+        <div class="lbl">Avg. Progress</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('enrolled')">📚 Enrolled Courses</button>
+      <button class="tab-btn" onclick="switchTab('progress')">📊 Progress</button>
+      <button class="tab-btn" onclick="switchTab('certs')">🏆 Certificates</button>
+    </div>
+
+    <!-- Tab: Enrolled Courses -->
+    <div class="tab-content active" id="tab-enrolled">
+      {% if enrollments %}
+      <div class="grid grid-2">
+        {% for e in enrollments %}
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">{{ e.Title }}</h3>
+            <span class="badge badge-{{ e.CourseStatus | lower }}">{{ e.CourseStatus }}</span>
+          </div>
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:.8rem">
+            <div>👨‍🏫 {{ e.InstructorName }}</div>
+            <div>📅 Enrolled {{ e.EnrollmentDate }}</div>
+            <div>
+              <span class="badge badge-{{ e.Level | lower }}" style="margin-top:.3rem">{{ e.Level }}</span>
+            </div>
+          </div>
+
+          <!-- Progress from progress_data -->
+          {% set ns = namespace(pct=0) %}
+          {% for pd in progress_data %}
+            {% if pd.CourseTitle == e.Title %}
+              {% set ns.pct = pd.ProgressPct %}
+            {% endif %}
+          {% endfor %}
+          <div class="progress-wrap">
+            <div class="progress-label">
+              <span>Progress</span>
+              <span>{{ ns.pct }}%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:{{ ns.pct }}%"></div></div>
+          </div>
+
+          <div class="card-footer">
+            <a href="/course/{{ e.CourseID }}" class="btn btn-teal btn-sm">Continue →</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty">
+        <div class="empty-icon">📚</div>
+        <p>You haven't enrolled in any courses yet.</p>
+        <a href="/courses" class="btn btn-teal" style="margin-top:1rem">Browse Courses</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Tab: Progress -->
+    <div class="tab-content" id="tab-progress">
+      {% if progress_data %}
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Course</th>
+                <th>Status</th>
+                <th>Completed</th>
+                <th>Total</th>
+                <th>Progress</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in progress_data %}
+              <tr>
+                <td><strong>{{ row.CourseTitle }}</strong></td>
+                <td><span class="badge badge-{{ row.CourseStatus | lower }}">{{ row.CourseStatus }}</span></td>
+                <td>{{ row.CompletedLessons }}</td>
+                <td>{{ row.TotalLessons }}</td>
+                <td>
+                  <div class="progress-bar" style="width:120px">
+                    <div class="progress-fill" style="width:{{ row.ProgressPct }}%"></div>
+                  </div>
+                  <span style="font-size:.78rem;color:var(--muted)">{{ row.ProgressPct }}%</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% else %}
+      <div class="empty">
+        <div class="empty-icon">📊</div>
+        <p>Start completing lessons to see your progress here.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Tab: Certificates -->
+    <div class="tab-content" id="tab-certs">
+      {% if certificates %}
+      <div class="grid grid-2">
+        {% for cert in certificates %}
+        <div class="cert-card">
+          <div class="cert-icon">🏆</div>
+          <div>
+            <div class="cert-title">{{ cert.Title }}</div>
+            <div class="cert-meta">Certificate #{{ cert.CertificateID }} · Issued {{ cert.IssueDate }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty">
+        <div class="empty-icon">🏆</div>
+        <p>Complete a course to earn your certificate!</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  &copy; 2024 <span>LearnArc</span>
+</footer>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const tabs = ['enrolled','progress','certs'];
+  const idx = tabs.indexOf(id);
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+</script>
+</body>
+</html>

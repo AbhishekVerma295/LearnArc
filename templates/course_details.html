@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ course.Title }} – LearnArc</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/"><span>Learn</span>Arc</a>
+  <div class="nav-links">
+    <a href="/courses">Courses</a>
+    {% if session.get('student_id') %}
+      <a href="/student/dashboard">Dashboard</a>
+      <a href="/logout" class="btn-nav btn">Logout</a>
+    {% elif session.get('instructor_id') %}
+      <a href="/instructor/dashboard">Dashboard</a>
+      <a href="/logout" class="btn-nav btn">Logout</a>
+    {% else %}
+      <a href="/login">Login</a>
+      <a href="/signup" class="btn-nav btn">Sign Up</a>
+    {% endif %}
+  </div>
+</nav>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container flash-wrap">
+      <ul class="flash-list">
+        {% for cat, msg in messages %}
+          <li class="flash flash-{{ cat }}">
+            {% if cat == 'success' %}✓{% elif cat == 'error' %}✕{% else %}ℹ{% endif %}
+            {{ msg }}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- Course Hero -->
+<div class="course-hero">
+  <div class="container">
+    <span class="badge badge-{{ course.Level | lower }}" style="margin-bottom:.75rem;display:inline-block">{{ course.Level }}</span>
+    <h1>{{ course.Title }}</h1>
+    <div class="meta">
+      <span>👨‍🏫 {{ course.InstructorName }}</span>
+      <span>📅 {{ course.CreatedDate }}</span>
+      <span>📦 {{ modules|length }} module{{ 's' if modules|length != 1 else '' }}</span>
+    </div>
+    {% if course.Description %}
+      <p style="margin-top:1rem;color:#ccc;max-width:620px;font-size:.92rem">{{ course.Description }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<section class="section">
+  <div class="container" style="display:grid;grid-template-columns:1fr 300px;gap:2rem;align-items:start">
+
+    <!-- Left: Curriculum -->
+    <div>
+      <h2 class="section-title" style="font-size:1.4rem;margin-bottom:1.2rem">Course Curriculum</h2>
+
+      {% if enrolled %}
+        <div class="progress-wrap" style="margin-bottom:1.5rem">
+          <div class="progress-label">
+            <span>Your Progress</span>
+            <span><strong>{{ progress_pct }}%</strong></span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:{{ progress_pct }}%"></div></div>
+        </div>
+      {% endif %}
+
+      {% for mod in modules %}
+      <div class="module-block">
+        <div class="module-head">
+          📂 Module {{ loop.index }}: {{ mod.ModuleTitle }}
+          <span style="margin-left:auto;font-size:.75rem;color:var(--muted);font-weight:400">{{ mod.lessons|length }} lesson{{ 's' if mod.lessons|length != 1 else '' }}</span>
+        </div>
+        {% for lesson in mod.lessons %}
+        <div class="lesson-row">
+          <div class="lesson-info">
+            <div class="lesson-title">
+              {% if lesson.LessonID in completed_lessons %}
+                ✅
+              {% else %}
+                ▶
+              {% endif %}
+              {{ lesson.LessonTitle }}
+            </div>
+            <div class="lesson-meta">
+              Lesson {{ lesson.LessonNumber }}
+              {% if lesson.DurationMinutes %} · {{ lesson.DurationMinutes }} min{% endif %}
+              {% if lesson.ContentURL %}
+                · <a href="{{ lesson.ContentURL }}" target="_blank" style="font-size:.77rem">View Resource ↗</a>
+              {% endif %}
+            </div>
+          </div>
+          {% if enrolled and session.get('student_id') %}
+            {% if lesson.LessonID in completed_lessons %}
+              <span class="lesson-done">Done</span>
+            {% else %}
+              <form method="POST" action="/complete_lesson/{{ lesson.LessonID }}">
+                <button type="submit" class="btn btn-sm btn-teal">Mark Done</button>
+              </form>
+            {% endif %}
+          {% endif %}
+        </div>
+        {% else %}
+        <div style="padding:.75rem 1.2rem;color:var(--muted);font-size:.85rem">No lessons added yet.</div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty">
+        <div class="empty-icon">📂</div>
+        <p>No modules have been added to this course yet.</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Right: Enrollment sidebar -->
+    <div>
+      <div class="card" style="position:sticky;top:80px">
+        {% if session.get('student_id') %}
+          {% if enrolled %}
+            <div style="text-align:center;padding:.5rem 0">
+              <div style="font-size:1.5rem;margin-bottom:.5rem">✅</div>
+              <div style="font-weight:700;font-size:.95rem">You're enrolled</div>
+              <div style="color:var(--muted);font-size:.82rem;margin-top:.3rem">Mark lessons as done to track progress</div>
+              <div class="divider"></div>
+              <div class="progress-label" style="margin-bottom:.4rem">
+                <span style="color:var(--muted);font-size:.8rem">Progress</span>
+                <span style="font-weight:700;color:var(--teal)">{{ progress_pct }}%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:{{ progress_pct }}%"></div></div>
+            </div>
+          {% else %}
+            <h3 style="font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem">Enroll Now</h3>
+            <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Join this course and start learning at your own pace.</p>
+            <form method="POST" action="/enroll/{{ course.CourseID }}">
+              <button type="submit" class="btn btn-primary btn-full">Enroll for Free</button>
+            </form>
+          {% endif %}
+        {% elif session.get('instructor_id') %}
+          <div style="text-align:center;padding:.5rem 0;color:var(--muted);font-size:.88rem">
+            👨‍🏫 Viewing as instructor
+          </div>
+        {% else %}
+          <h3 style="font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem">Start Learning</h3>
+          <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Log in or sign up to enroll in this course.</p>
+          <a href="/login" class="btn btn-primary btn-full" style="margin-bottom:.5rem;display:flex">Sign In to Enroll</a>
+          <a href="/signup" class="btn btn-outline btn-full" style="display:flex">Create Free Account</a>
+        {% endif %}
+
+        <div class="divider"></div>
+        <div style="font-size:.82rem;color:var(--muted)">
+          <div style="margin-bottom:.4rem">📦 <strong>{{ modules|length }}</strong> modules</div>
+          <div style="margin-bottom:.4rem">🎓 <strong>{{ course.Level }}</strong> level</div>
+          <div>🏆 Certificate on completion</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</section>
+
+<footer>
+  &copy; 2024 <span>LearnArc</span>
+</footer>
+</body>
+</html>

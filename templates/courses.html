@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Courses – LearnArc</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/"><span>Learn</span>Arc</a>
+  <div class="nav-links">
+    <a href="/courses">Courses</a>
+    {% if session.get('student_id') %}
+      <a href="/student/dashboard">Dashboard</a>
+      <a href="/logout" class="btn-nav btn">Logout</a>
+    {% elif session.get('instructor_id') %}
+      <a href="/instructor/dashboard">Dashboard</a>
+      <a href="/logout" class="btn-nav btn">Logout</a>
+    {% else %}
+      <a href="/login">Login</a>
+      <a href="/signup" class="btn-nav btn">Sign Up</a>
+    {% endif %}
+  </div>
+</nav>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container flash-wrap">
+      <ul class="flash-list">
+        {% for cat, msg in messages %}
+          <li class="flash flash-{{ cat }}">{{ msg }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+{% endwith %}
+
+<div style="background:var(--ink);color:var(--paper);padding:2.5rem 0 2rem">
+  <div class="container">
+    <h1 style="font-family:var(--serif);font-size:2rem">All <em style="color:var(--amber-l)">Courses</em></h1>
+    <p style="color:#aaa;margin-top:.4rem">{{ courses|length }} course{{ 's' if courses|length != 1 else '' }} available</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <!-- Filter bar -->
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:2rem">
+      <button class="btn btn-sm btn-teal filter-btn" onclick="filterCourses('all')">All</button>
+      <button class="btn btn-sm btn-outline filter-btn" onclick="filterCourses('Beginner')">Beginner</button>
+      <button class="btn btn-sm btn-outline filter-btn" onclick="filterCourses('Intermediate')">Intermediate</button>
+      <button class="btn btn-sm btn-outline filter-btn" onclick="filterCourses('Advanced')">Advanced</button>
+    </div>
+
+    <div class="grid grid-3" id="course-grid">
+      {% for course in courses %}
+      <div class="card course-item" data-level="{{ course.Level }}">
+        <div class="card-header">
+          <h3 class="card-title">{{ course.Title }}</h3>
+          <span class="badge badge-{{ course.Level | lower }}">{{ course.Level }}</span>
+        </div>
+        <p class="card-desc">{{ (course.Description or '')[:130] }}{% if course.Description and course.Description|length > 130 %}…{% endif %}</p>
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">
+          👨‍🏫 {{ course.InstructorName }}
+        </div>
+        <div class="card-footer">
+          <a href="/course/{{ course.CourseID }}" class="btn btn-teal btn-sm">View Course →</a>
+        </div>
+      </div>
+      {% else %}
+      <div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">📚</div>
+        <p>No courses published yet. Instructors — log in and create one!</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<footer>
+  &copy; 2024 <span>LearnArc</span>
+</footer>
+
+<script>
+function filterCourses(level) {
+  const items = document.querySelectorAll('.course-item');
+  items.forEach(el => {
+    el.style.display = (level === 'all' || el.dataset.level === level) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

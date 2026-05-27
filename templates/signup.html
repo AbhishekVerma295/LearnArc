@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up – LearnArc</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/"><span>Learn</span>Arc</a>
+  <div class="nav-links">
+    <a href="/courses">Courses</a>
+    <a href="/login" class="btn-nav btn">Login</a>
+  </div>
+</nav>
+
+<div class="auth-page" style="padding:2rem">
+  <div class="auth-box" style="max-width:500px">
+    <h2>Create account</h2>
+    <p>Join LearnArc as a student or instructor</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flash-list" style="margin-bottom:1rem">
+          {% for cat, msg in messages %}
+            <li class="flash flash-{{ cat }}">{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="/signup" id="signup-form">
+      <div class="role-toggle">
+        <input type="radio" name="role" id="role-student" value="student" checked onchange="toggleBio()">
+        <label for="role-student">Student</label>
+        <input type="radio" name="role" id="role-instructor" value="instructor" onchange="toggleBio()">
+        <label for="role-instructor">Instructor</label>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name</label>
+          <input type="text" name="firstname" required placeholder="Jane">
+        </div>
+        <div class="form-group">
+          <label>Last Name</label>
+          <input type="text" name="lastname" required placeholder="Doe">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" required placeholder="you@example.com">
+      </div>
+
+      <div class="form-group" id="phone-field">
+        <label>Phone</label>
+        <input type="text" name="phone" placeholder="+91 98765 43210">
+      </div>
+
+      <div class="form-group" id="bio-field" style="display:none">
+        <label>Bio / Expertise</label>
+        <textarea name="bio" placeholder="Tell students about your background…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" required placeholder="••••••••" minlength="6">
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="/login">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleBio() {
+  const isInstructor = document.getElementById('role-instructor').checked;
+  document.getElementById('bio-field').style.display = isInstructor ? 'block' : 'none';
+  document.getElementById('phone-field').style.display = isInstructor ? 'none' : 'block';
+}
+</script>
+</body>
+</html>

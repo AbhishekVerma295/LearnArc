@@ -1,0 +1,126 @@
++<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LearnArc – Online Course Platform</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-brand" href="/"><span>Learn</span>Arc</a>
+  <div class="nav-links">
+    <a href="/courses">Courses</a>
+    {% if session.get('student_id') %}
+      <span class="nav-greeting">Hi, {{ session.get('name') }} 👋</span>
+      <a href="/student/dashboard">Dashboard</a>
+      <a href="/logout" class="btn-nav btn">Logout</a>
+    {% elif session.get('instructor_id') %}
+      <span class="nav-greeting">Hi, {{ session.get('name') }} 👋</span>
+      <a href="/instructor/dashboard">Dashboard</a>
+      <a href="/logout" class="btn-nav btn">Logout</a>
+    {% else %}
+      <a href="/login">Login</a>
+      <a href="/signup" class="btn-nav btn">Sign Up</a>
+    {% endif %}
+  </div>
+</nav>
+
+<!-- FLASH MESSAGES -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container flash-wrap">
+      <ul class="flash-list">
+        {% for cat, msg in messages %}
+          <li class="flash flash-{{ cat }}">
+            {% if cat == 'success' %}✓{% elif cat == 'error' %}✕{% else %}ℹ{% endif %}
+            {{ msg }}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- HERO -->
+<section class="hero">
+  <h1>Learn anything.<br><em>Track everything.</em></h1>
+  <p>A powerful course platform where students grow and instructors inspire — backed by real-time analytics.</p>
+  <div class="hero-actions">
+    <a href="/courses" class="btn btn-primary">Browse Courses</a>
+    {% if not session.get('student_id') and not session.get('instructor_id') %}
+      <a href="/signup" class="btn btn-secondary">Get Started Free</a>
+    {% endif %}
+  </div>
+</section>
+
+<!-- FEATURED COURSES -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Featured Courses</h2>
+    <p class="section-sub">Hand-picked from our catalog — start learning today.</p>
+    <div class="grid grid-3">
+      {% for course in courses %}
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ course.Title }}</h3>
+          <span class="badge badge-{{ course.Level | lower }}">{{ course.Level }}</span>
+        </div>
+        <p class="card-desc">{{ (course.Description or '')[:120] }}{% if course.Description and course.Description|length > 120 %}…{% endif %}</p>
+        <div class="card-footer">
+          <a href="/course/{{ course.CourseID }}" class="btn btn-outline btn-sm">View Course</a>
+        </div>
+      </div>
+      {% else %}
+      <div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">📚</div>
+        <p>No courses yet. Check back soon!</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% if courses|length > 0 %}
+    <div style="text-align:center;margin-top:2rem">
+      <a href="/courses" class="btn btn-teal">View All Courses</a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about-section">
+  <div class="container">
+    <h2 class="section-title">Why LearnArc?</h2>
+    <p>Built with a focus on real progress. Every lesson completed, every milestone reached — all tracked so you always know where you stand.</p>
+    <div class="features-grid">
+      <div class="feature-item">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-title">Goal-Driven Learning</div>
+        <div class="feature-desc">Set a pace, follow modules, and watch your progress bar fill up.</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Real-Time Analytics</div>
+        <div class="feature-desc">Instructors see enrollment trends, completion rates, and more.</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🏆</div>
+        <div class="feature-title">Auto Certificates</div>
+        <div class="feature-desc">Complete a course and a certificate is automatically generated for you.</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-title">Secure Accounts</div>
+        <div class="feature-desc">Separate student and instructor portals with session-based auth.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  &copy; 2024 <span>LearnArc</span> — Online Course Progress & Analytics Platform &nbsp;|&nbsp; DBMS Project
+</footer>
+
+</body>
+</html>
