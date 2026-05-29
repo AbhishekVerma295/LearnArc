@@ -94,7 +94,7 @@
               Lesson {{ lesson.LessonNumber }}
               {% if lesson.DurationMinutes %} · {{ lesson.DurationMinutes }} min{% endif %}
               {% if lesson.ContentURL %}
-                · <a href="{{ lesson.ContentURL }}" target="_blank" style="font-size:.77rem">View Resource ↗</a>
+                · <a href="{{ lesson.ContentURL }}" target="_blank" rel="noopener noreferrer" style="font-size:.77rem">View Resource ↗</a>
               {% endif %}
             </div>
           </div>
@@ -103,6 +103,7 @@
               <span class="lesson-done">Done</span>
             {% else %}
               <form method="POST" action="/complete_lesson/{{ lesson.LessonID }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-sm btn-teal">Mark Done</button>
               </form>
             {% endif %}
@@ -140,6 +141,7 @@
             <h3 style="font-family:var(--serif);font-size:1.2rem;margin-bottom:.5rem">Enroll Now</h3>
             <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">Join this course and start learning at your own pace.</p>
             <form method="POST" action="/enroll/{{ course.CourseID }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btn btn-primary btn-full">Enroll for Free</button>
             </form>
           {% endif %}
@@ -168,7 +170,7 @@
 </section>
 
 <footer>
-  &copy; 2024 <span>LearnArc</span>
+  &copy; 2025 <span>LearnArc</span>
 </footer>
 </body>
 </html>

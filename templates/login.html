@@ -35,6 +35,11 @@
     {% endwith %}
 
     <form method="POST" action="/login">
+      {# CSRF token — Flask-WTF validates this on every POST.
+         Without it the form returns HTTP 400.  This prevents
+         Cross-Site Request Forgery attacks. #}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
       <div class="role-toggle">
         <input type="radio" name="role" id="role-student" value="student" checked>
         <label for="role-student">Student</label>

@@ -32,6 +32,8 @@
     {% endwith %}
 
     <form method="POST" action="/signup" id="signup-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
       <div class="role-toggle">
         <input type="radio" name="role" id="role-student" value="student" checked onchange="toggleBio()">
         <label for="role-student">Student</label>
@@ -42,22 +44,22 @@
       <div class="form-row">
         <div class="form-group">
           <label>First Name</label>
-          <input type="text" name="firstname" required placeholder="Jane">
+          <input type="text" name="firstname" required placeholder="Jane" maxlength="100">
         </div>
         <div class="form-group">
           <label>Last Name</label>
-          <input type="text" name="lastname" required placeholder="Doe">
+          <input type="text" name="lastname" required placeholder="Doe" maxlength="100">
         </div>
       </div>
 
       <div class="form-group">
         <label>Email</label>
-        <input type="email" name="email" required placeholder="you@example.com">
+        <input type="email" name="email" required placeholder="you@example.com" maxlength="150">
       </div>
 
       <div class="form-group" id="phone-field">
         <label>Phone</label>
-        <input type="text" name="phone" placeholder="+91 98765 43210">
+        <input type="text" name="phone" placeholder="+91 98765 43210" maxlength="20">
       </div>
 
       <div class="form-group" id="bio-field" style="display:none">
@@ -67,7 +69,7 @@
 
       <div class="form-group">
         <label>Password</label>
-        <input type="password" name="password" required placeholder="••••••••" minlength="6">
+        <input type="password" name="password" required placeholder="••••••••" minlength="8">
       </div>
 
       <button type="submit" class="btn btn-primary btn-full">Create Account</button>
@@ -82,8 +84,8 @@
 <script>
 function toggleBio() {
   const isInstructor = document.getElementById('role-instructor').checked;
-  document.getElementById('bio-field').style.display = isInstructor ? 'block' : 'none';
-  document.getElementById('phone-field').style.display = isInstructor ? 'none' : 'block';
+  document.getElementById('bio-field').style.display   = isInstructor ? 'block' : 'none';
+  document.getElementById('phone-field').style.display = isInstructor ? 'none'  : 'block';
 }
 </script>
 </body>
