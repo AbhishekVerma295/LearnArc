@@ -1,140 +1,122 @@
-# LearnArc — Online Course Progress & Analytics Platform
-### DBMS Project | Flask + MySQL
+# LearnArc API — FastAPI Edition
+
+> A modernized Learning Management System backend built with **FastAPI**, **SQLAlchemy 2.0**, **Alembic**, and **JWT Authentication**.
+
+Originally a Flask monolith, refactored into a clean layered architecture suitable for a software engineering portfolio.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | FastAPI 0.115 |
+| ORM | SQLAlchemy 2.0 (synchronous) |
+| Database | MySQL (existing schema reused) |
+| Driver | PyMySQL |
+| Migrations | Alembic |
+| Auth | JWT via python-jose |
+| Config | Pydantic Settings v2 |
+| Server | Uvicorn |
 
 ---
 
 ## Project Structure
 
 ```
-project/
-├── app.py                        ← Flask backend (all routes + DB logic)
-├── setup.sql                     ← SQL schema + sample data (optional)
-├── README.md
-├── templates/
-│   ├── index.html                ← Public homepage with course listing
-│   ├── login.html                ← Login (student/instructor toggle)
-│   ├── signup.html               ← Signup (student/instructor)
-│   ├── courses.html              ← Full course catalog with filter
-│   ├── course_details.html       ← Course page with modules & lessons
-│   ├── student_dashboard.html    ← Student portal (progress, certs)
-│   └── instructor_dashboard.html ← Instructor portal (create, manage)
-└── static/
-    └── style.css                 ← Complete custom CSS
+learnarc/
+├── app/
+│   ├── main.py              ← FastAPI app + middleware + health endpoint
+│   ├── core/
+│   │   └── config.py        ← Pydantic Settings (reads .env)
+│   ├── db/
+│   │   └── session.py       ← SQLAlchemy engine + get_db() dependency
+│   ├── models/              ← SQLAlchemy ORM models (one file per domain)
+│   ├── schemas/             ← Pydantic v2 request/response schemas [Phase 2]
+│   ├── services/            ← Business logic layer [Phase 2+]
+│   ├── dependencies/        ← FastAPI auth dependencies [Phase 3]
+│   ├── api/v1/              ← REST API route handlers [Phase 4]
+│   └── utils/               ← Shared utilities [Phase 3+]
+├── alembic/                 ← Database migrations
+├── alembic.ini
+├── requirements.txt
+└── .env                     ← Never commit this!
 ```
 
 ---
 
-## Setup Instructions
+## Quick Start
 
-### 1. Install dependencies
+### 1. Configure environment
 
 ```bash
-pip install flask mysql-connector-python
+# .env is already populated — update DB credentials if needed
+notepad .env
 ```
 
-### 2. Configure MySQL
-
-Open `app.py` and update the DB config in `get_db()`:
-
-```python
-host     = "localhost"
-user     = "root"
-password = "YOUR_MYSQL_PASSWORD"   ← change this
-database = "course_platform"
-```
-
-### 3. Create the database
-
-```sql
-CREATE DATABASE course_platform;
-```
-
-Then (optional) load sample data:
+### 2. Install dependencies
 
 ```bash
-mysql -u root -p course_platform < setup.sql
+pip install -r requirements.txt
 ```
 
-### 4. Run the app
+### 3. Set up Alembic (first time only)
 
 ```bash
-python app.py
+# If the database already exists from the Flask app:
+alembic stamp head
+
+# For a fresh database, generate and apply initial migration:
+alembic revision --autogenerate -m "initial_schema"
+alembic upgrade head
 ```
 
-Visit: **http://localhost:5000**
+### 4. Run the development server
+
+```bash
+uvicorn app.main:app --reload
+```
+
+### 5. Open API documentation
+
+- **Swagger UI** → http://localhost:8000/docs
+- **ReDoc** → http://localhost:8000/redoc
+- **Health check** → http://localhost:8000/health
 
 ---
 
-## Demo Accounts (if setup.sql loaded)
-
-| Role       | Email                   | Password     |
-|------------|-------------------------|--------------|
-| Student    | kavya@example.com       | password123  |
-| Student    | rohan@example.com       | password123  |
-| Instructor | priya@learnarc.com      | password123  |
-| Instructor | arjun@learnarc.com      | password123  |
-
----
-
-## Database Features Implemented
-
-| Feature          | Implementation |
-|------------------|----------------|
-| **Tables**       | STUDENT, STUDENT_LOGIN, INSTRUCTOR, INSTRUCTOR_LOGIN, COURSE, MODULE, LESSON, ENROLLMENT, PROGRESS, CERTIFICATE |
-| **Foreign Keys** | All relational links enforced |
-| **UNIQUE**       | ENROLLMENT(StudentID, CourseID), PROGRESS(StudentID, LessonID) |
-| **VIEW**         | `StudentProgressReport` — joins 6 tables, calculates ProgressPct |
-| **TRIGGER**      | `after_enrollment_completed` — auto-inserts certificate when status = 'Completed' |
-| **SELECT**       | Courses, modules, lessons, progress, certificates |
-| **INSERT**       | Enrollment, progress, course/module/lesson creation |
-| **UPDATE**       | CourseStatus → 'Completed' when all lessons done |
-| **Aggregation**  | COUNT, SUM, ROUND, GROUP BY for analytics |
-| **Joins**        | Multi-table joins throughout |
-
----
-
-## System Flow
+## Architecture
 
 ```
-User visits /         → browses courses (public)
-User signs up         → creates Student or Instructor account
-Student logs in       → redirected to /student/dashboard
-Student enrolls       → INSERT INTO ENROLLMENT
-Student marks lesson  → INSERT INTO PROGRESS
-App checks progress   → CompletedLessons / TotalLessons
-If 100% done          → UPDATE ENROLLMENT SET CourseStatus='Completed'
-TRIGGER fires         → INSERT INTO CERTIFICATE (auto)
-Certificate appears   → in /student/dashboard → Certificates tab
-
-Instructor logs in    → /instructor/dashboard
-Creates course        → INSERT INTO COURSE
-Adds module           → INSERT INTO MODULE
-Adds lesson           → INSERT INTO LESSON
-Views analytics       → StudentProgressReport VIEW + joins
+Client
+  ↓
+FastAPI Router (api/v1/)
+  ↓
+Dependencies (Auth / DB Session)
+  ↓
+Service Layer (business logic)
+  ↓
+SQLAlchemy Models
+  ↓
+MySQL Database
 ```
 
 ---
 
-## Key SQL Queries
+## Development Phases
 
-```sql
--- Student progress (VIEW)
-SELECT * FROM StudentProgressReport WHERE StudentID = ?;
+| Phase | Status | Description |
+|---|---|---|
+| 1 | ✅ Done | Scaffold + SQLAlchemy models + Alembic |
+| 2 | ⏳ Next | Pydantic schemas + Service layer |
+| 3 | 🔲 | JWT auth + Auth endpoints |
+| 4 | 🔲 | Full REST API endpoints |
+| 5 | 🔲 | Docker + Tests + CI |
 
--- Course curriculum
-SELECT m.*, l.* FROM MODULE m
-LEFT JOIN LESSON l ON m.ModuleID = l.ModuleID
-WHERE m.CourseID = ?;
+---
 
--- Enroll student
-INSERT INTO ENROLLMENT(StudentID, CourseID, EnrollmentDate, CourseStatus)
-VALUES(?, ?, CURDATE(), 'Active');
+## Database
 
--- Mark lesson complete
-INSERT IGNORE INTO PROGRESS(StudentID, LessonID, ProgressStatus, CompletedTimestamp)
-VALUES(?, ?, 'Completed', NOW());
+This project uses the **existing `course_platform` MySQL database** created by the original Flask app. No schema changes in Phase 1 — all tables, views, and triggers are preserved.
 
--- Mark course complete (triggers certificate via TRIGGER)
-UPDATE ENROLLMENT SET CourseStatus='Completed'
-WHERE StudentID=? AND CourseID=?;
-```
+See `../files/setup.sql` for the original schema.

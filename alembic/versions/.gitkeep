@@ -1,0 +1,3 @@
+# This file keeps the alembic/versions/ directory tracked by git.
+# Alembic stores migration script files here.
+# Each migration file is named like: 20240101_abc123_add_phone_column.py

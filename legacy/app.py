@@ -19,7 +19,6 @@ Changes from original:
 import os
 from contextlib import contextmanager
 from datetime import datetime
-
 import bcrypt
 import mysql.connector
 from dotenv import load_dotenv
