@@ -108,7 +108,7 @@ MySQL Database
 | Phase | Status | Description |
 |---|---|---|
 | 1 | ✅ Done | Scaffold + SQLAlchemy models + Alembic |
-| 2 | ⏳ Next | Pydantic schemas + Service layer |
+| 2 | ✅ Done | Pydantic schemas + Service layer |
 | 3 | 🔲 | JWT auth + Auth endpoints |
 | 4 | 🔲 | Full REST API endpoints |
 | 5 | 🔲 | Docker + Tests + CI |
