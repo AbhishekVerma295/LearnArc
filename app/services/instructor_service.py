@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from app.models.instructor import Instructor, InstructorLogin
 from app.schemas.instructor import InstructorCreate, InstructorUpdate
+from app.core.security import get_password_hash
 
 def get_instructor(db: Session, instructor_id: int):
     return db.get(Instructor, instructor_id)
@@ -12,7 +13,7 @@ def get_instructor_by_email(db: Session, email: str):
 def create_instructor(db: Session, instructor_in: InstructorCreate):
     instructor_login = InstructorLogin(
         email=instructor_in.email,
-        password=instructor_in.password  # TODO: Hash password in Phase 3
+        password=get_password_hash(instructor_in.password)
     )
     instructor = Instructor(
         first_name=instructor_in.first_name,

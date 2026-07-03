@@ -3,6 +3,7 @@ from sqlalchemy import select
 from app.models.student import Student, StudentLogin
 from app.schemas.student import StudentCreate, StudentUpdate
 from datetime import date
+from app.core.security import get_password_hash
 
 def get_student(db: Session, student_id: int):
     return db.get(Student, student_id)
@@ -11,11 +12,10 @@ def get_student_by_email(db: Session, email: str):
     return db.execute(select(Student).where(Student.email == email)).scalar_one_or_none()
 
 def create_student(db: Session, student_in: StudentCreate):
-    # The actual password hashing will happen in Phase 3. 
-    # For now, we store it directly to complete the schema/DB mapping.
+    # Hash the password before saving
     student_login = StudentLogin(
         email=student_in.email,
-        password=student_in.password  # TODO: Hash password in Phase 3
+        password=get_password_hash(student_in.password)
     )
     student = Student(
         first_name=student_in.first_name,

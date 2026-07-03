@@ -123,9 +123,12 @@ app.add_middleware(
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 # API routers are registered here as they are built in later phases.
-# Example (Phase 4):
-#   from app.api.v1 import auth, courses, students, instructors
-#   app.include_router(auth.router,        prefix="/api/v1/auth",        tags=["Auth"])
+from app.api.v1 import auth
+
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
+
+# Future (Phase 4):
+#   from app.api.v1 import courses, students, instructors
 #   app.include_router(courses.router,     prefix="/api/v1/courses",     tags=["Courses"])
 #   app.include_router(students.router,    prefix="/api/v1/students",    tags=["Students"])
 #   app.include_router(instructors.router, prefix="/api/v1/instructors", tags=["Instructors"])
