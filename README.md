@@ -110,7 +110,7 @@ MySQL Database
 | 1 | ✅ Done | Scaffold + SQLAlchemy models + Alembic |
 | 2 | ✅ Done | Pydantic schemas + Service layer |
 | 3 | ✅ Done | JWT auth + Auth endpoints |
-| 4 | 🔲 | Full REST API endpoints |
+| 4 | ✅ Done | Full REST API endpoints |
 | 5 | 🔲 | Docker + Tests + CI |
 
 ---
