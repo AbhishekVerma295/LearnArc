@@ -111,7 +111,7 @@ MySQL Database
 | 2 | ✅ Done | Pydantic schemas + Service layer |
 | 3 | ✅ Done | JWT auth + Auth endpoints |
 | 4 | ✅ Done | Full REST API endpoints |
-| 5 | 🔲 | Docker + Tests + CI |
+| 5 | ✅ Done | Docker + Tests + CI |
 
 ---
 
