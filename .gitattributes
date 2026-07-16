@@ -8,3 +8,7 @@
 *.css text eol=lf
 *.txt text eol=lf
 *.mako text eol=lf
+# Shell scripts and YAML MUST use LF — CRLF breaks bash in Linux containers
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

@@ -5,27 +5,52 @@ services:
     image: mysql:8.0
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: course_platform
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-course_platform}
+      MYSQL_USER: ${DB_USER:-appuser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-root}
     ports:
       - "3306:3306"
     volumes:
+      # Named volume — data persists across container restarts and rebuilds.
+      - mysql_data:/var/lib/mysql
+      # Seed script: only runs on first init (when the volume is empty).
       - ./legacy/database_dump.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-root}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - learnarc
 
   api:
     build: .
     ports:
       - "8000:8000"
+    env_file:
+      # All secrets come from the .env file — never hardcoded here.
+      - .env
     environment:
       - DB_HOST=db
-      - DB_USER=root
-      - DB_PASSWORD=root
-      - DB_NAME=course_platform
+      - DB_PORT=3306
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - learnarc
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  learnarc:
+    driver: bridge

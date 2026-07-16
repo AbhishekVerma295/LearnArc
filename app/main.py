@@ -6,49 +6,33 @@ This is the heart of the FastAPI application. It:
   1. Creates the FastAPI app instance
   2. Configures CORS middleware
   3. Defines the application lifespan (startup / shutdown hooks)
-  4. Registers all API routers (added in Phase 4)
+  4. Registers all API routers
   5. Provides a /health endpoint for monitoring
 
-HOW FASTAPI DIFFERS FROM FLASK
--------------------------------
-Flask:
-    app = Flask(__name__)
-    @app.route("/")
-    def index(): ...
-
-FastAPI:
-    app = FastAPI()
-    @app.get("/")
-    def index(): ...
-
-FastAPI is very similar to Flask for basic routes, but adds:
-  - Automatic OpenAPI docs at /docs (Swagger UI) and /redoc
-  - Automatic request/response validation via Pydantic
-  - Dependency injection via Depends()
-  - Type annotations that drive validation AND documentation
-
-LIFESPAN (STARTUP / SHUTDOWN)
-------------------------------
-FastAPI uses a "lifespan" context manager for startup and shutdown logic.
-This replaces the older @app.on_event("startup") decorator (which is
-deprecated in modern FastAPI).
-
-On startup, we verify the database is reachable so developers get an
-immediate, clear error instead of a cryptic failure on the first request.
+PRODUCTION NOTES
+-----------------
+- CORS: Controlled via ALLOWED_ORIGINS env var (comma-separated origins).
+        Defaults to localhost for development. Set to your frontend URL in prod.
+- Health: /health checks real DB connectivity and returns 503 if the DB is down.
+          This is what load balancers / deployment platforms rely on.
+- Rate Limiting: Auth endpoints are rate-limited via slowapi to prevent brute force.
 """
 
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from app.core.config import settings
 from app.db.session import check_db_connection
 
 # ── Logging ───────────────────────────────────────────────────────────────────
-# Configure basic logging so startup messages appear in the console.
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)-8s | %(name)s — %(message)s",
@@ -56,21 +40,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ── Rate Limiter ──────────────────────────────────────────────────────────────
+# Keyed by client IP address. Shared across the app via app.state.limiter.
+limiter = Limiter(key_func=get_remote_address)
+
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Runs once at startup (before `yield`) and once at shutdown (after `yield`).
-
-    Why asynccontextmanager?
-    FastAPI's lifespan system requires an async context manager, even if
-    our database code is synchronous. The `async def` / `yield` pattern
-    is just the required signature — the actual DB operations are sync.
     """
     # ── STARTUP ───────────────────────────────────────────────────────────────
     logger.info("LearnArc API starting up...")
-    logger.info("Connecting to database: %s@%s/%s", settings.db_user, settings.db_host, settings.db_name)
+    logger.info(
+        "Connecting to database: %s@%s:%s/%s",
+        settings.db_user,
+        settings.db_host,
+        settings.db_port,
+        settings.db_name,
+    )
+    logger.info("CORS allowed origins: %s", settings.allowed_origins_list)
 
     if check_db_connection():
         logger.info("✓ Database connection OK")
@@ -79,8 +69,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             "✗ Database connection FAILED. "
             "Check DB_HOST, DB_USER, DB_PASSWORD, DB_NAME in your .env file."
         )
-        # We do not raise here — the app still starts but DB-dependent routes
-        # will return 500 errors. Raising would crash the process entirely.
 
     yield  # ← application runs here
 
@@ -93,28 +81,31 @@ app = FastAPI(
     title="LearnArc API",
     description=(
         "Online Course Progress & Analytics Platform — "
-        "FastAPI modernization of the original Flask LMS."
+        "FastAPI modernization of the original Flask LMS.\n\n"
+        "**Authentication:** Use the `/api/v1/auth/login/student` or "
+        "`/api/v1/auth/login/instructor` endpoints to obtain a Bearer token, "
+        "then click 'Authorize' above."
     ),
     version="2.0.0",
-    # /docs → Swagger UI (interactive API explorer)
     docs_url="/docs",
-    # /redoc → ReDoc (clean, read-only API documentation)
     redoc_url="/redoc",
     lifespan=lifespan,
 )
 
+# ── Rate Limiter State ────────────────────────────────────────────────────────
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── Middleware ────────────────────────────────────────────────────────────────
 # CORS (Cross-Origin Resource Sharing) allows a frontend (e.g. React on
 # localhost:3000) to call this API (on localhost:8000) without the browser
 # blocking the request with a CORS error.
 #
-# allow_origins=["*"] means ANY origin is allowed.
-# In production, replace with your specific frontend URL:
-#   allow_origins=["https://learnarc.yourdomain.com"]
+# Origins are controlled via the ALLOWED_ORIGINS env var.
+# In production, set: ALLOWED_ORIGINS=https://learnarc.yourdomain.com
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # tighten this in production
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -122,7 +113,6 @@ app.add_middleware(
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
-# API routers are registered here as they are built in later phases.
 from app.api.v1 import auth, courses, students, instructors, enrollments
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
@@ -132,21 +122,38 @@ app.include_router(instructors.router, prefix="/api/v1/instructors", tags=["Inst
 app.include_router(enrollments.router, prefix="/api/v1/enrollments", tags=["Enrollments"])
 
 
+# ── Health Check ──────────────────────────────────────────────────────────────
 @app.get("/health", tags=["Health"])
 def health_check() -> dict:
     """
     Health check endpoint.
 
     Used by:
-      - Docker health checks (HEALTHCHECK in Dockerfile)
+      - Docker HEALTHCHECK instruction
       - Deployment platforms (Railway, Render, etc.)
       - Monitoring tools (Uptime Robot, etc.)
 
-    Returns a simple JSON response indicating the API is alive.
-    The database status will be added in Phase 3.
+    Returns HTTP 200 with {"status": "ok"} when the DB is reachable.
+    Returns HTTP 503 with {"status": "degraded"} when the DB is unreachable.
+
+    NOTE: Load balancers and hosting platforms rely on this endpoint to decide
+    whether to route traffic to this pod. A false 200 when the DB is down
+    would result in all requests silently failing.
     """
+    db_ok = check_db_connection()
+    if not db_ok:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "degraded",
+                "version": "2.0.0",
+                "app": "LearnArc API",
+                "database": "unreachable",
+            },
+        )
     return {
         "status": "ok",
         "version": "2.0.0",
         "app": "LearnArc API",
+        "database": "connected",
     }

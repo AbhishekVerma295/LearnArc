@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Union
 from jose import jwt
 from passlib.context import CryptContext
@@ -16,12 +16,12 @@ def create_access_token(
     subject: Union[str, Any], user_type: str, expires_delta: timedelta = None
 ) -> str:
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
+        expire = datetime.now(timezone.utc) + timedelta(
             minutes=settings.access_token_expire_minutes
         )
-    
+
     # We store the email in "sub" and the user type (student/instructor) in "user_type"
     to_encode = {"exp": expire, "sub": str(subject), "user_type": user_type}
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)

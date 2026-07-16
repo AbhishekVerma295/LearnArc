@@ -7,8 +7,15 @@ env/
 venv/
 .env
 .venv
+.env.example
 .pytest_cache/
-alembic/
+htmlcov/
+.coverage
+coverage.xml
 legacy/
 .git
 .github
+tests/
+*.md
+docker-compose.yml
+.dockerignore
